@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MeetPilot AI — Live Demo</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0F1117;
+    --surface:   #1A1E2E;
+    --surface2:  #222638;
+    --border:    #2E3352;
+    --border2:   #3A4068;
+    --teal:      #0EA5C9;
+    --teal-dim:  #0284A8;
+    --teal-bg:   rgba(14,165,201,0.08);
+    --text:      #E8EAF0;
+    --text-muted:#7C849C;
+    --text-dim:  #4A5068;
+    --green:     #22C55E;
+    --green-bg:  rgba(34,197,94,0.08);
+    --red:       #EF4444;
+    --amber:     #F59E0B;
+    --radius:    10px;
+    --radius-sm: 6px;
+  }
+
+  body {
+    font-family: -apple-system, 'Inter', 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 28px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .logo {
+    width: 34px; height: 34px;
+    background: var(--teal);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .logo svg { width: 18px; height: 18px; fill: white; }
+  .brand-name { font-size: 16px; font-weight: 600; letter-spacing: -0.3px; }
+  .brand-sub  { font-size: 12px; color: var(--text-muted); }
+  .live-badge {
+    margin-left: auto;
+    font-size: 11px; font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: var(--green-bg);
+    color: var(--green);
+    border: 1px solid rgba(34,197,94,0.2);
+    display: flex; align-items: center; gap: 5px;
+  }
+  .live-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* ── Layout ── */
+  .layout {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    height: calc(100vh - 65px);
+  }
+
+  /* ── Left panel ── */
+  .left-panel {
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .panel-section {
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .panel-label {
+    font-size: 10px; font-weight: 600;
+    color: var(--text-muted); letter-spacing: .08em;
+    text-transform: uppercase; margin-bottom: 12px;
+  }
+
+  /* Quick prompts */
+  .prompt-chips { display: flex; flex-direction: column; gap: 7px; }
+  .chip {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 9px 12px;
+    font-size: 12px; color: var(--text-muted);
+    cursor: pointer; text-align: left;
+    transition: border-color .15s, color .15s;
+    line-height: 1.5;
+  }
+  .chip:hover { border-color: var(--teal); color: var(--teal); }
+  .chip strong { color: var(--text); font-weight: 500; display: block; font-size: 11px; margin-bottom: 2px; }
+
+  /* Input */
+  textarea#nlp-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    padding: 12px 14px;
+    resize: none;
+    min-height: 96px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  textarea#nlp-input:focus { border-color: var(--teal); }
+  textarea#nlp-input::placeholder { color: var(--text-dim); }
+
+  /* Mode tabs */
+  .mode-tabs {
+    display: flex; gap: 6px; margin: 10px 0;
+  }
+  .mode-tab {
+    flex: 1; padding: 7px 4px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted); font-size: 11px; font-weight: 500;
+    cursor: pointer; text-align: center;
+    transition: all .15s;
+  }
+  .mode-tab.active {
+    border-color: var(--teal);
+    background: var(--teal-bg);
+    color: var(--teal);
+  }
+
+  .run-btn {
+    width: 100%; padding: 11px;
+    background: var(--teal);
+    color: white; border: none;
+    border-radius: var(--radius);
+    font-size: 14px; font-weight: 600;
+    cursor: pointer; margin-top: 10px;
+    transition: background .15s, transform .1s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .run-btn:hover:not(:disabled) { background: var(--teal-dim); }
+  .run-btn:active:not(:disabled) { transform: scale(0.98); }
+  .run-btn:disabled { background: var(--border); cursor: not-allowed; }
+
+  /* Contacts */
+  .contact-list { display: flex; flex-direction: column; gap: 6px; }
+  .contact-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+  .contact-avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--teal-bg);
+    border: 1px solid rgba(14,165,201,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; color: var(--teal);
+    flex-shrink: 0;
+  }
+  .contact-name  { font-size: 13px; font-weight: 500; }
+  .contact-email { font-size: 11px; color: var(--text-muted); }
+
+  /* ── Right panel ── */
+  .right-panel {
+    display: flex; flex-direction: column;
+    overflow-y: auto;
+    padding: 24px 28px;
+    gap: 16px;
+  }
+
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    height: 100%; gap: 12px; color: var(--text-muted);
+    text-align: center;
+  }
+  .empty-icon { opacity: 0.25; }
+  .empty-state p { font-size: 13px; max-width: 280px; line-height: 1.7; }
+
+  /* Pipeline steps */
+  .pipeline {
+    display: flex; flex-direction: column; gap: 14px;
+  }
+
+  .step-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .step-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .step-num {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--teal-bg); border: 1px solid var(--teal);
+    color: var(--teal); font-size: 11px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .step-name { font-size: 12px; font-weight: 600; color: var(--text); letter-spacing: .02em; }
+  .step-badge {
+    margin-left: auto;
+    font-size: 10px; padding: 2px 8px; border-radius: 20px;
+  }
+  .badge-ok     { background: var(--green-bg); color: var(--green); border: 1px solid rgba(34,197,94,0.2); }
+  .badge-warn   { background: rgba(245,158,11,0.1); color: var(--amber); border: 1px solid rgba(245,158,11,0.2); }
+  .badge-info   { background: var(--teal-bg); color: var(--teal); border: 1px solid rgba(14,165,201,0.2); }
+
+  .step-body { padding: 14px; }
+
+  /* Tags row */
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .tag {
+    font-size: 11px; padding: 3px 9px; border-radius: 20px;
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text-muted);
+  }
+  .tag.teal { background: var(--teal-bg); border-color: rgba(14,165,201,0.25); color: var(--teal); }
+
+  /* Email preview */
+  .email-preview {
+    font-size: 13px; line-height: 1.7;
+  }
+  .email-subject {
+    font-weight: 600; color: var(--text); margin-bottom: 10px;
+    padding-bottom: 10px; border-bottom: 1px solid var(--border);
+  }
+  .email-body { color: var(--text-muted); white-space: pre-wrap; }
+
+  /* Agenda */
+  .agenda-list { display: flex; flex-direction: column; gap: 8px; }
+  .agenda-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 9px 12px;
+    background: var(--surface2); border-radius: var(--radius-sm);
+    font-size: 13px; color: var(--text-muted);
+  }
+  .agenda-n {
+    font-weight: 700; color: var(--teal); font-size: 11px;
+    min-width: 18px; margin-top: 1px;
+  }
+
+  /* Summary */
+  .summary-text {
+    font-size: 13px; color: var(--text-muted);
+    line-height: 1.8; font-style: italic;
+    border-left: 2px solid var(--teal);
+    padding-left: 14px;
+  }
+
+  /* Confirm bar */
+  .confirm-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .confirm-bar p { font-size: 13px; color: var(--text-muted); flex: 1; }
+  .btn-approve {
+    padding: 9px 20px;
+    background: var(--teal); color: white; border: none;
+    border-radius: var(--radius-sm); font-weight: 600; font-size: 13px;
+    cursor: pointer; white-space: nowrap;
+    transition: background .15s;
+  }
+  .btn-approve:hover { background: var(--teal-dim); }
+  .btn-discard {
+    padding: 9px 16px;
+    background: transparent;
+    border: 1px solid var(--border); color: var(--text-muted);
+    border-radius: var(--radius-sm); font-size: 13px;
+    cursor: pointer;
+    transition: border-color .15s;
+  }
+  .btn-discard:hover { border-color: var(--border2); color: var(--text); }
+
+  /* Confirm toggle */
+  .confirm-options {
+    display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;
+  }
+  .toggle-label {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 12px; color: var(--text-muted); cursor: pointer;
+  }
+  input[type=checkbox] { accent-color: var(--teal); width: 14px; height: 14px; }
+
+  /* Success banner */
+  .success-banner {
+    background: var(--green-bg);
+    border: 1px solid rgba(34,197,94,0.2);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    font-size: 13px; color: var(--green);
+    display: flex; gap: 10px; align-items: flex-start;
+  }
+
+  /* Loading spinner */
+  .spinner {
+    display: inline-block; width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 24 24"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
+  </div>
+  <div>
+    <div class="brand-name">MeetPilot AI</div>
+    <div class="brand-sub">Schedule Smarter. Prepare Better.</div>
+  </div>
+  <div class="live-badge">
+    <div class="live-dot"></div>
+    Live Demo
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- ── Left: Input ── -->
+  <div class="left-panel">
+
+    <div class="panel-section">
+      <div class="panel-label">Try a prompt</div>
+      <div class="prompt-chips">
+        <div class="chip" onclick="usePrompt(this)">
+          <strong>Proposal mode</strong>
+          Schedule a 30-minute meeting with Alice next Tuesday afternoon about Q4 planning
+        </div>
+        <div class="chip" onclick="usePrompt(this)">
+          <strong>Direct mode</strong>
+          Schedule a meeting with Bob Friday at 2 PM about presentation prep
+        </div>
+        <div class="chip" onclick="usePrompt(this)">
+          <strong>Follow-up mode</strong>
+          Schedule a follow-up with Alice next week to review the Q4 outcomes
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-label">Your request</div>
+      <textarea id="nlp-input" placeholder="Type a natural language scheduling request..." rows="4"></textarea>
+
+      <div class="mode-tabs">
+        <div class="mode-tab active" data-mode="proposal" onclick="setMode('proposal')">Proposal</div>
+        <div class="mode-tab" data-mode="direct" onclick="setMode('direct')">Direct</div>
+        <div class="mode-tab" data-mode="followup" onclick="setMode('followup')">Follow-up</div>
+      </div>
+
+      <button class="run-btn" id="run-btn" onclick="runSchedule()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        Run MeetPilot AI
+      </button>
+    </div>
+
+    <div class="panel-section" style="flex: 1;">
+      <div class="panel-label">Contacts</div>
+      <div class="contact-list" id="contact-list">
+        <div style="font-size:12px; color: var(--text-muted);">Loading...</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Right: Output pipeline ── -->
+  <div class="right-panel" id="right-panel">
+    <div class="empty-state">
+      <svg class="empty-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+      <p>Enter a natural language scheduling request and hit Run to see the full pipeline output.</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let currentMode = 'proposal';
+let lastResult  = null;
+
+// ── Load contacts ─────────────────────────────────────────────────────────────
+async function loadContacts() {
+  const res  = await fetch('/api/contacts');
+  const data = await res.json();
+  const el   = document.getElementById('contact-list');
+  el.innerHTML = Object.entries(data).map(([name, info]) => `
+    <div class="contact-row">
+      <div class="contact-avatar">${name[0].toUpperCase()}</div>
+      <div>
+        <div class="contact-name">${info.name || name}</div>
+        <div class="contact-email">${info.email}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── Mode toggle ───────────────────────────────────────────────────────────────
+function setMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.mode === mode);
+  });
+}
+
+// ── Use a sample prompt ───────────────────────────────────────────────────────
+function usePrompt(el) {
+  const text = el.childNodes[el.childNodes.length - 1].textContent.trim();
+  document.getElementById('nlp-input').value = text;
+  const modeEl = el.querySelector('strong');
+  if (modeEl) {
+    const modeText = modeEl.textContent.toLowerCase();
+    if (modeText.includes('proposal')) setMode('proposal');
+    else if (modeText.includes('direct')) setMode('direct');
+    else if (modeText.includes('follow')) setMode('followup');
+  }
+}
+
+// ── Run the pipeline ──────────────────────────────────────────────────────────
+async function runSchedule() {
+  const input = document.getElementById('nlp-input').value.trim();
+  if (!input) return;
+
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Processing...';
+
+  renderLoading();
+
+  try {
+    const res  = await fetch('/api/schedule', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ input, mode: currentMode })
+    });
+    const data = await res.json();
+    if (data.error) {
+      renderError(data.error);
+    } else {
+      lastResult = data;
+      renderPipeline(data);
+    }
+  } catch (e) {
+    renderError('Could not reach the server. Is app.py running?');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Run MeetPilot AI';
+}
+
+// ── Render: loading ────────────────────────────────────────────────────────────
+function renderLoading() {
+  const steps = ['Parsing intent...', 'Checking availability...', 'Generating agenda...', 'Drafting email...'];
+  const html = `<div class="pipeline">${steps.map((s,i) => `
+    <div class="step-card" style="opacity:${1 - i*0.2}">
+      <div class="step-header">
+        <div class="step-num">${i+1}</div>
+        <div class="step-name">${s}</div>
+        <div class="spinner" style="margin-left:auto;border-color:rgba(14,165,201,0.3);border-top-color:var(--teal);"></div>
+      </div>
+    </div>
+  `).join('')}</div>`;
+  document.getElementById('right-panel').innerHTML = html;
+}
+
+// ── Render: error ──────────────────────────────────────────────────────────────
+function renderError(msg) {
+  document.getElementById('right-panel').innerHTML = `
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-name" style="color:var(--red)">Error</div>
+      </div>
+      <div class="step-body" style="color:var(--text-muted); font-size:13px;">${msg}</div>
+    </div>`;
+}
+
+// ── Render: full pipeline ──────────────────────────────────────────────────────
+function renderPipeline(d) {
+  const modeLabel = { proposal: 'Proposal mode', direct: 'Direct mode', followup: 'Follow-up mode' }[d.mode] || d.mode;
+  const availBadge = d.available
+    ? '<span class="step-badge badge-ok">Available</span>'
+    : '<span class="step-badge badge-warn">Conflict</span>';
+
+  const html = `
+  <div class="pipeline">
+
+    <!-- Step 1: Intent -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">1</div>
+        <div class="step-name">Intent parsed</div>
+        <span class="step-badge badge-info">${d.intent.confidence}% confidence</span>
+      </div>
+      <div class="step-body">
+        <div style="font-size:13px; color:var(--text-muted);">
+          <strong style="color:var(--text);">Topic:</strong> ${d.topic}<br>
+          <strong style="color:var(--text);">Mode:</strong> ${modeLabel}<br>
+          <strong style="color:var(--text);">Duration:</strong> ${d.duration_minutes} minutes
+        </div>
+        <div class="tags">
+          ${d.participants.map(p => `<span class="tag teal">${p}</span>`).join('')}
+          <span class="tag">${d.proposed_time}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Availability -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">2</div>
+        <div class="step-name">Availability check</div>
+        ${availBadge}
+      </div>
+      <div class="step-body">
+        <div style="font-size:13px; color:var(--text-muted);">
+          <strong style="color:var(--text);">Proposed:</strong> ${d.proposed_time}<br>
+          <span style="font-size:12px;">${d.availability_msg}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Agenda -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">3</div>
+        <div class="step-name">Agenda generated</div>
+        <span class="step-badge badge-ok">AI draft</span>
+      </div>
+      <div class="step-body">
+        <div class="agenda-list">
+          ${d.agenda.map((item, i) => `
+            <div class="agenda-item">
+              <span class="agenda-n">${i+1}.</span>
+              <span>${item}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: Email -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">4</div>
+        <div class="step-name">Email drafted</div>
+        <span class="step-badge badge-ok">Ready to send</span>
+      </div>
+      <div class="step-body">
+        <div class="email-preview">
+          <div class="email-subject">Subject: ${d.email.subject}</div>
+          <div class="email-body">${d.email.body}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 5: Summary -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">5</div>
+        <div class="step-name">Meeting summary</div>
+        <span class="step-badge badge-info">Pre-meeting brief</span>
+      </div>
+      <div class="step-body">
+        <div class="summary-text">${d.summary}</div>
+      </div>
+    </div>
+
+    <!-- Confirm bar -->
+    <div class="confirm-bar" id="confirm-bar">
+      <div style="flex:1;">
+        <div style="font-size:13px; font-weight:600; margin-bottom:6px; color:var(--text);">Review and confirm</div>
+        <div class="confirm-options">
+          <label class="toggle-label"><input type="checkbox" id="chk-email" checked> Send email</label>
+          <label class="toggle-label"><input type="checkbox" id="chk-event"> Create calendar event</label>
+        </div>
+        <div style="font-size:12px; color:var(--text-muted);">Human-in-the-loop: nothing is sent without your approval.</div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:7px; min-width:130px;">
+        <button class="btn-approve" onclick="confirmMeeting()">Approve &amp; Send</button>
+        <button class="btn-discard" onclick="discard()">Discard</button>
+      </div>
+    </div>
+
+  </div>`;
+
+  document.getElementById('right-panel').innerHTML = html;
+}
+
+// ── Confirm ────────────────────────────────────────────────────────────────────
+async function confirmMeeting() {
+  if (!lastResult) return;
+  const bar = document.getElementById('confirm-bar');
+  bar.innerHTML = '<div class="spinner" style="border-color:rgba(14,165,201,0.3);border-top-color:var(--teal);"></div> <span style="color:var(--text-muted);font-size:13px;">Sending...</span>';
+
+  const res = await fetch('/api/confirm', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      ...lastResult,
+      send_email:   document.getElementById('chk-email')?.checked ?? true,
+      create_event: document.getElementById('chk-event')?.checked ?? false,
+    })
+  });
+  const data = await res.json();
+  bar.outerHTML = `
+    <div class="success-banner">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+      <div>
+        <strong>Meeting confirmed.</strong><br>
+        <span style="font-size:12px; opacity:.8;">${data.messages.join(' · ')}</span>
+      </div>
+    </div>`;
+}
+
+function discard() {
+  document.getElementById('confirm-bar').remove();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+loadContacts();
+</script>
+</body>
+</html>
